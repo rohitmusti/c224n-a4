@@ -30,10 +30,19 @@ def pad_sents(sents, pad_token):
 
     ### YOUR CODE HERE (~6 Lines)
 
+    max_len = max([len(i) for i in sents])
+    for i in sents:
+        if len(i) < max_len:
+            i.extend([pad_token for i in range(max_len - len(i))])
+        sents_padded.append(i)
+    
+#    Test to see if my function works
+#    for i in sents_padded:
+#        if len(i) != max_len:
+#            print(f"Error: one of the padded strings didn't work")
 
     ### END YOUR CODE
-
-    return sents_padded
+    return sents
 
 
 
