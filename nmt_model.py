@@ -73,6 +73,15 @@ class NMT(nn.Module):
         ###     Dropout Layer:
         ###         https://pytorch.org/docs/stable/nn.html#torch.nn.Dropout
 
+        # I still need to figure out the input, output of each layer
+        self.encoder = nn.LSTM(input_size=embed_size, hidden_size=hidden_size, bias=True, bidirectional=True) # (Bidirectional LSTM with bias)
+        self.decoder = nn.LSTM(input_size=embed_size+hidden_size, hidden_size=hidden_size, bias=True)  # (LSTM Cell with bias)
+        self.h_projection = nn.Linear(in_features=???, out_features=???, bias=False) # (Linear Layer with no bias), called W_{h} in the PDF.
+        self.c_projection = nn.Linear(in_features=???, out_features=???, bias=False) # (Linear Layer with no bias), called W_{c} in the PDF.
+        self.att_projection = nn.Linear(in_features=???, out_features=???, bias=False) # (Linear Layer with no bias), called W_{attProj} in the PDF.
+        self.combined_output_projection = nn.Linear(in_features=???, out_features=???, bias=False) # (Linear Layer with no bias), called W_{u} in the PDF.
+        self.target_vocab_projection = nn.Linear(in_features=???, out_features=???, bias=False) # (Linear Layer with no bias), called W_{vocab} in the PDF.
+        self.dropout = nn.Dropout(p=dropout_rate) # (Dropout Layer)
 
         ### END YOUR CODE
 
