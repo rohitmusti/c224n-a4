@@ -74,7 +74,7 @@ class NMT(nn.Module):
         ###         https://pytorch.org/docs/stable/nn.html#torch.nn.Dropout
 
         self.encoder = nn.LSTM(input_size=embed_size, hidden_size=hidden_size, bias=True, bidirectional=True) # (Bidirectional LSTM with bias)
-        self.decoder = nn.LSTM(input_size=embed_size+hidden_size, hidden_size=hidden_size, bias=True)  # (LSTM Cell with bias)
+        self.decoder = nn.LSTMCell(input_size=embed_size+hidden_size, hidden_size=hidden_size, bias=True)  # (LSTM Cell with bias)
         self.h_projection = nn.Linear(in_features=2*hidden_size, out_features=hidden_size, bias=False) # (Linear Layer with no bias), called W_{h} in the PDF.
         self.c_projection = nn.Linear(in_features=2*hidden_size, out_features=hidden_size, bias=False) # (Linear Layer with no bias), called W_{c} in the PDF.
         self.att_projection = nn.Linear(in_features=2*hidden_size, out_features=hidden_size, bias=False) # (Linear Layer with no bias), called W_{attProj} in the PDF.
@@ -338,6 +338,20 @@ class NMT(nn.Module):
         ###     Tensor Squeeze:
         ###         https://pytorch.org/docs/stable/torch.html#torch.squeeze
 
+        #1 
+        dec_state = self.decoder(Ybar_t, dec_state)
+
+        #2 
+        dec_hidden, _ = dec_state # may need parentheses
+
+        #3
+#        print(f"pre-unsqueeze dec_hidden dimensions: {dec_hidden.size()}")
+        dec_hidden = dec_hidden.unsqueeze(2)
+#        print(f"post-unsqueeze dec_hidden dimensions: {dec_hidden.size()}")
+        e_t = enc_hiddens_proj.bmm(dec_hidden)
+        e_t = e_t.squeeze(2)
+
+
 
         ### END YOUR CODE
 
@@ -373,6 +387,27 @@ class NMT(nn.Module):
         ###     Tanh:
         ###         https://pytorch.org/docs/stable/torch.html#torch.tanh
 
+        #1
+        alpha_t = F.softmax(e_t, dim=1)
+
+        #2
+#        print(f"alpha_t dim: {alpha_t.size()}")
+#        print(f"enc_hidden dim: {enc_hiddens.shape}")
+        alpha_t = torch.unsqueeze(alpha_t,1)
+        a_t = torch.bmm(alpha_t, enc_hiddens).squeeze(1)
+#        print(f"a_t dim: {a_t.size()}")
+#        print(f"dec_hidden dim: {dec_hidden.size()}")
+
+        #3
+        dec_hidden = torch.squeeze(dec_hidden) # b/c I updated this earlier, instead of just chaining, I have to modify it again
+        U_t = torch.cat((a_t, dec_hidden), dim=1)
+        
+        #4
+        V_t = self.combined_output_projection(U_t)
+
+        #5
+        V_t = torch.tanh(V_t)
+        O_t = self.dropout(V_t)
 
         ### END YOUR CODE
 
