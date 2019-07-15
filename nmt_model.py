@@ -176,16 +176,16 @@ class NMT(nn.Module):
         X = self.model_embeddings.source(source_padded)
 
         #2
-        X = self.pack_padded_sequence(X, source_lengths)
-        enc_hiddens, last_hidden, last_cell = self.encoder(X)
+        X = pack_padded_sequence(X, source_lengths)
+        enc_hiddens, (last_hidden, last_cell) = self.encoder(X)
+        enc_hiddens, _ = pad_packed_sequence(enc_hiddens) # learned that _ can be used for unused variables
         enc_hiddens = enc_hiddens.permute(1, 0, 2)
-        enc_hiddens, enc_hidden_lengths = pad_packed_sequence(enc_hiddens)
 
         #3
-        last_hidden = torch.cat((last_hidden[0],last_hidden[1]), dim=1).size()
+        last_hidden = torch.cat((last_hidden[0],last_hidden[1]), dim=1)
         init_decoder_hidden = self.h_projection(last_hidden)
 
-        last_cell = torch.cat((last_cell[0],last_cell[1]), dim=1).size()
+        last_cell = torch.cat((last_cell[0],last_cell[1]), dim=1)
         init_decoder_cell = self.c_projection(last_cell)
 
         dec_init_state = (init_decoder_hidden, init_decoder_cell)
@@ -259,6 +259,26 @@ class NMT(nn.Module):
         ###     Tensor Stacking:
         ###         https://pytorch.org/docs/stable/torch.html#torch.stack
 
+        # 1 
+        enc_hiddens_proj = self.att_projection(enc_hiddens)
+
+        #2
+        Y = self.model_embeddings.target(target_padded)
+
+        #3
+        for Y_t in torch.split(tensor=Y, split_size_or_sections=1, dim=0):
+            Y_t = torch.squeeze(input=Y_t)
+            Ybar_t = torch.cat(tensors=(Y_t, o_prev), dim=1)
+
+            # I kept adding args here until it worked
+            dec_state, o_t, _ = self.step(Ybar_t, enc_hiddens, enc_hiddens_proj,
+                                          dec_state, enc_masks) 
+
+            combined_outputs.append(o_t)
+            o_prev = o_t
+
+        #4
+        combined_outputs = torch.stack(tensors=combined_outputs, dim=0)
 
         ### END YOUR CODE
 
