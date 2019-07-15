@@ -271,8 +271,9 @@ class NMT(nn.Module):
             Ybar_t = torch.cat(tensors=(Y_t, o_prev), dim=1)
 
             # I kept adding args here until it worked
-            dec_state, o_t, _ = self.step(Ybar_t, enc_hiddens, enc_hiddens_proj,
-                                          dec_state, enc_masks) 
+            dec_state, o_t, _ = self.step(Ybar_t=Ybar_t, enc_hiddens=enc_hiddens, 
+                                          enc_hiddens_proj=enc_hiddens_proj,
+                                          dec_state=dec_state, enc_masks=enc_masks) 
 
             combined_outputs.append(o_t)
             o_prev = o_t
